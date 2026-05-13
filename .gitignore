@@ -8,3 +8,4 @@ briefs/
 logs/
 .env
 .DS_Store
+sources.yaml

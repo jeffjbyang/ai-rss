@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from datetime import timezone
+from urllib.parse import urlsplit
 
 import feedparser
+import requests
 from dateutil import parser as date_parser
 
 from .config import Source
@@ -11,7 +13,7 @@ from .normalize import canonical_url
 
 
 def collect_feed(source: Source) -> list[Item]:
-    parsed = feedparser.parse(source.url)
+    parsed = feedparser.parse(_read_feed(source.url))
     items: list[Item] = []
     for entry in parsed.entries:
         url = canonical_url(str(entry.get("link", "")))
@@ -32,6 +34,14 @@ def collect_feed(source: Source) -> list[Item]:
             )
         )
     return items
+
+
+def _read_feed(url: str) -> bytes | str:
+    if urlsplit(url).scheme in {"http", "https"}:
+        response = requests.get(url, timeout=8)
+        response.raise_for_status()
+        return response.content
+    return url
 
 
 def _parse_date(value: object) -> str | None:

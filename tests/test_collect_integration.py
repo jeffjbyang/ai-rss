@@ -107,3 +107,43 @@ sources:
     log = (tmp_path / "logs" / "2026-05-13.log").read_text(encoding="utf-8")
     assert "Broken P0" in log
     assert "HTTP 503" in log
+
+
+def test_collect_records_storage_failures_as_source_failures(tmp_path: Path, monkeypatch) -> None:
+    config = tmp_path / "sources.yaml"
+    config.write_text(
+        """
+sources:
+  - name: Bad Write Source
+    type: rss
+    priority: P0
+    url: https://example.com/bad-write.xml
+    tags: [official]
+    enabled: true
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "ai_rss.collect.collect_source",
+        lambda source: [
+            Item(
+                title="Will fail during write",
+                source_name=source.name,
+                source_type=source.type,
+                source_priority=source.priority,
+                url="https://example.com/will-fail",
+                canonical_url="https://example.com/will-fail",
+                published_at="2026-05-13T08:00:00+00:00",
+                summary="This item simulates a storage failure.",
+                tags=source.tags,
+            )
+        ],
+    )
+    monkeypatch.setattr("ai_rss.collect.Storage.upsert_items", lambda self, items: (_ for _ in ()).throw(OSError("disk unavailable")))
+
+    collect_to_candidates(config, tmp_path, parse_now("2026-05-13T18:10:00+08:00"))
+
+    log = (tmp_path / "logs" / "2026-05-13.log").read_text(encoding="utf-8")
+    assert "Bad Write Source" in log
+    assert "disk unavailable" in log

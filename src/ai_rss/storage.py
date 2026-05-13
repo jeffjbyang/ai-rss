@@ -6,7 +6,6 @@ from datetime import datetime
 from pathlib import Path
 
 from .models import Item
-
 from .timeutils import parse_datetime
 
 
@@ -37,9 +36,14 @@ class Storage:
             )
 
     def upsert_item(self, item: Item) -> None:
+        self.upsert_items([item])
+
+    def upsert_items(self, items: list[Item]) -> None:
+        if not items:
+            return
         collected_at = datetime.now().astimezone().isoformat()
         with self._connect() as conn:
-            conn.execute(
+            conn.executemany(
                 """
                 insert into items (
                     title, source_name, source_type, source_priority, url, canonical_url,
@@ -56,19 +60,22 @@ class Storage:
                     summary = excluded.summary,
                     tags_json = excluded.tags_json
                 """,
-                (
-                    item.title,
-                    item.source_name,
-                    item.source_type,
-                    item.source_priority,
-                    item.url,
-                    item.canonical_url,
-                    item.published_at,
-                    collected_at,
-                    item.summary,
-                    json.dumps(item.tags, ensure_ascii=False),
-                    item.score,
-                ),
+                [
+                    (
+                        item.title,
+                        item.source_name,
+                        item.source_type,
+                        item.source_priority,
+                        item.url,
+                        item.canonical_url,
+                        item.published_at,
+                        collected_at,
+                        item.summary,
+                        json.dumps(item.tags, ensure_ascii=False),
+                        item.score,
+                    )
+                    for item in items
+                ],
             )
 
     def list_items_between(self, start: datetime, end: datetime) -> list[Item]:

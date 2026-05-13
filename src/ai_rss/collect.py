@@ -27,11 +27,10 @@ def collect_to_candidates(config_path: Path, data_dir: Path, now: datetime) -> N
             continue
         try:
             items = collect_source(source)
+            storage.upsert_items(items)
         except Exception as exc:  # noqa: BLE001 - source failures must not block the daily brief.
             source_failures.append(SourceFailure(name=source.name, priority=source.priority, reason=str(exc)))
             continue
-        for item in items:
-            storage.upsert_item(item)
 
     date = brief_date_for(now)
     start, end = previous_24_hour_window(now)
