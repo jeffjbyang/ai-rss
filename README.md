@@ -31,6 +31,17 @@ Generate candidates and the default brief:
 uv run ai-rss collect --config sources.yaml --data-dir data
 ```
 
+## Server Deployment
+
+Deploy or update from the server by pulling GitHub directly:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jeffjbyang/ai-rss/main/scripts/install_or_update.sh -o /tmp/ai-rss-install.sh
+bash /tmp/ai-rss-install.sh
+```
+
+This installs to `/srv/ai-rss`, creates a server-local `.env`, configures the 17:50/18:10 Beijing-time jobs, and adds an hourly GitHub self-update job. Put Feishu and LLM secrets only in `/srv/ai-rss/.env`.
+
 ## Optional LLM Enhancement
 
 LLM enhancement is disabled unless a model and either a base URL or API key are configured. When enabled, the system enhances selected brief items with:

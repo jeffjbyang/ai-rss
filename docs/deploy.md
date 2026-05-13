@@ -1,5 +1,98 @@
 # ai-rss deployment notes
 
+## Server install or update
+
+The server should pull from GitHub directly. Do not upload local build artifacts.
+
+On the server:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/jeffjbyang/ai-rss/main/scripts/install_or_update.sh -o /tmp/ai-rss-install.sh
+bash /tmp/ai-rss-install.sh
+```
+
+The installer uses these defaults:
+
+- Repository: `https://github.com/jeffjbyang/ai-rss.git`
+- App directory: `/srv/ai-rss`
+- Branch: `main`
+
+Override them when needed:
+
+```sh
+AI_RSS_REPO_URL="https://github.com/jeffjbyang/ai-rss.git" \
+AI_RSS_APP_DIR="/srv/ai-rss" \
+AI_RSS_BRANCH="main" \
+bash /tmp/ai-rss-install.sh
+```
+
+The installer creates `/srv/ai-rss/.env` from `.env.example` if it does not exist. Keep real tokens only in that server-local file.
+
+## Server-local configuration
+
+Edit `/srv/ai-rss/.env` on the server:
+
+```sh
+cd /srv/ai-rss
+nano .env
+chmod 600 .env
+```
+
+Required for Feishu delivery:
+
+```sh
+FEISHU_WEBHOOK_URL="https://open.feishu.cn/open-apis/bot/v2/hook/..."
+```
+
+Optional LLM provider:
+
+```sh
+AI_RSS_LLM_MODEL="your-model"
+AI_RSS_LLM_BASE_URL="https://api.openai.com/v1"
+AI_RSS_LLM_API_KEY="your-api-key"
+```
+
+Leave `AI_RSS_LLM_MODEL` empty to disable LLM enhancement.
+
+## Server automation
+
+The installer configures cron in Beijing time:
+
+- 17:50: collect sources and generate the daily brief.
+- 18:10: send the generated brief to Feishu.
+- Every hour at minute 20: pull the latest `main` branch and run `uv sync`.
+
+Check the installed state:
+
+```sh
+cd /srv/ai-rss
+bash scripts/server_status.sh
+```
+
+Run the updater manually:
+
+```sh
+cd /srv/ai-rss
+bash scripts/update_from_git.sh
+```
+
+Run a manual collect:
+
+```sh
+cd /srv/ai-rss
+set -a && . ./.env && set +a
+uv run ai-rss collect --config sources.yaml --data-dir data
+cat data/logs/$(date +%F).log
+```
+
+Run a manual Feishu send after `FEISHU_WEBHOOK_URL` is configured:
+
+```sh
+cd /srv/ai-rss
+set -a && . ./.env && set +a
+uv run ai-rss send --data-dir data
+```
+
 ## Feishu webhook
 
 Set the Feishu bot webhook as an environment variable on the host that runs cron:
