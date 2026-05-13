@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .llm import LLMClient, LLMEnhancement, llm_client_from_env
 from .models import Item
 from .scoring import score_items
 
@@ -25,6 +26,7 @@ def create_brief_from_candidates(
     *,
     max_items: int = DEFAULT_MAX_ITEMS,
     overwrite: bool = True,
+    llm_client: LLMClient | None = None,
 ) -> Path:
     """Create a Markdown review brief from candidates/YYYY-MM-DD.json."""
     candidate_path = data_dir / "candidates" / f"{brief_date}.json"
@@ -35,10 +37,25 @@ def create_brief_from_candidates(
     payload = json.loads(candidate_path.read_text(encoding="utf-8"))
     entries = _entries_from_payload(payload)
     selected = select_for_brief(entries, max_items=max_items)
+    selected = enhance_entries(selected, llm_client=llm_client if llm_client is not None else llm_client_from_env())
 
     brief_path.parent.mkdir(parents=True, exist_ok=True)
     brief_path.write_text(render_brief(brief_date, selected), encoding="utf-8")
     return brief_path
+
+
+def enhance_entries(entries: list[BriefEntry], *, llm_client: LLMClient | None) -> list[BriefEntry]:
+    if llm_client is None:
+        return entries
+    enhanced: list[BriefEntry] = []
+    for entry in entries:
+        try:
+            enhancement = llm_client.enhance(entry.item)
+        except Exception:  # noqa: BLE001 - LLM enhancement must never block the daily brief.
+            enhanced.append(entry)
+            continue
+        enhanced.append(_apply_enhancement(entry, enhancement))
+    return enhanced
 
 
 def render_brief(brief_date: str, entries: list[BriefEntry]) -> str:
@@ -170,12 +187,13 @@ def _render_entry(entry: BriefEntry) -> list[str]:
     tag_text = ", ".join(item.tags) if item.tags else "未分类"
     key_changes = entry.key_changes or item.summary
     why_matters = entry.why_matters or _default_why_matters(item)
+    summary = entry.item.summary or item.title
 
     lines = [
         f"### [{tag_text}] {item.title}",
         f"来源：{item.source_name}",
         f"评分：{item.score}",
-        f"摘要：{item.summary or item.title}",
+        f"摘要：{summary}",
         f"关键变化：{key_changes or item.title}",
         f"为什么重要：{why_matters}",
     ]
@@ -216,3 +234,27 @@ def _is_exploratory(item: Item) -> bool:
 def _matches(item: Item, keywords: set[str]) -> bool:
     text = " ".join([item.title, item.summary, *item.tags]).lower()
     return any(keyword in text for keyword in keywords)
+
+
+def _apply_enhancement(entry: BriefEntry, enhancement: LLMEnhancement) -> BriefEntry:
+    item = entry.item
+    if enhancement.summary:
+        item = Item(
+            title=item.title,
+            source_name=item.source_name,
+            source_type=item.source_type,
+            source_priority=item.source_priority,
+            url=item.url,
+            canonical_url=item.canonical_url,
+            published_at=item.published_at,
+            summary=enhancement.summary,
+            practical_takeaway=item.practical_takeaway,
+            tags=item.tags,
+            score=item.score,
+        )
+    return BriefEntry(
+        item=item,
+        practical_takeaway=enhancement.practical_takeaway or entry.practical_takeaway,
+        key_changes=enhancement.key_changes or entry.key_changes,
+        why_matters=enhancement.why_matters or entry.why_matters,
+    )

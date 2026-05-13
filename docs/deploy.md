@@ -41,3 +41,25 @@ Health reporting should alert when either condition is true:
 - Any P0 source fails.
 
 Health alert messages use the same `FEISHU_WEBHOOK_URL` configuration and include the alert reasons without printing webhook secrets.
+
+## Optional LLM enhancement
+
+LLM enhancement is optional. The daily brief still works without it.
+
+Configure an OpenAI-compatible provider with environment variables:
+
+```sh
+export AI_RSS_LLM_MODEL="your-model"
+export AI_RSS_LLM_BASE_URL="https://api.openai.com/v1"
+export AI_RSS_LLM_API_KEY="your-api-key"
+```
+
+For a local provider that does not require a key:
+
+```sh
+export AI_RSS_LLM_MODEL="qwen2.5:7b"
+export AI_RSS_LLM_BASE_URL="http://localhost:11434/v1"
+unset AI_RSS_LLM_API_KEY
+```
+
+Only selected brief candidates are enhanced. If the provider times out or returns an error, generation falls back to the rule-based summary for that item.

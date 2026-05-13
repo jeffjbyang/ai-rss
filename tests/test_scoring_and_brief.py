@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from ai_rss.brief import create_brief_from_candidates
+from ai_rss.llm import LLMEnhancement
 from ai_rss.models import Item
 from ai_rss.scoring import score_items
 
@@ -141,6 +142,77 @@ def test_review_brief_can_preserve_manual_edits(tmp_path: Path) -> None:
 
     assert result == brief_path
     assert brief_path.read_text(encoding="utf-8") == "manual review edits\n"
+
+
+def test_review_brief_uses_llm_enhancements_for_selected_items(tmp_path: Path) -> None:
+    candidates_dir = tmp_path / "candidates"
+    candidates_dir.mkdir()
+    (candidates_dir / "2026-05-13.json").write_text(
+        json.dumps(
+            {
+                "brief_date": "2026-05-13",
+                "items": [
+                    candidate(
+                        "GitHub ships Copilot coding agent",
+                        "GitHub Blog",
+                        "P0",
+                        "Official release for coding agents and pull requests.",
+                    )
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeLLMClient:
+        def enhance(self, item: Item) -> LLMEnhancement:
+            return LLMEnhancement(
+                summary="LLM 摘要：GitHub 发布 coding agent。",
+                key_changes="LLM 关键变化：支持从 issue 到 PR。",
+                why_matters="LLM 重要性：会改变后台开发的代码审查流程。",
+                practical_takeaway="LLM 启发：先在小仓库试用。",
+            )
+
+    brief_path = create_brief_from_candidates(tmp_path, "2026-05-13", llm_client=FakeLLMClient())
+
+    text = brief_path.read_text(encoding="utf-8")
+    assert "摘要：LLM 摘要：GitHub 发布 coding agent。" in text
+    assert "关键变化：LLM 关键变化：支持从 issue 到 PR。" in text
+    assert "为什么重要：LLM 重要性：会改变后台开发的代码审查流程。" in text
+    assert "可落地启发：LLM 启发：先在小仓库试用。" in text
+
+
+def test_review_brief_falls_back_when_llm_enhancement_fails(tmp_path: Path) -> None:
+    candidates_dir = tmp_path / "candidates"
+    candidates_dir.mkdir()
+    (candidates_dir / "2026-05-13.json").write_text(
+        json.dumps(
+            {
+                "brief_date": "2026-05-13",
+                "items": [
+                    candidate(
+                        "Harness adds AI release automation",
+                        "Harness Blog",
+                        "P0",
+                        "Official release connects CI/CD and deployment verification.",
+                    )
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    class FailingLLMClient:
+        def enhance(self, item: Item) -> LLMEnhancement:
+            raise RuntimeError("provider unavailable")
+
+    brief_path = create_brief_from_candidates(tmp_path, "2026-05-13", llm_client=FailingLLMClient())
+
+    text = brief_path.read_text(encoding="utf-8")
+    assert "Official release connects CI/CD and deployment verification." in text
+    assert "provider unavailable" not in text
 
 
 def candidate(
