@@ -6,7 +6,7 @@ APP_DIR="${AI_RSS_APP_DIR:-/srv/ai-rss}"
 cd "$APP_DIR"
 echo "== git =="
 git status --short --branch
-git log --oneline -3
+git --no-pager log --oneline -3
 echo
 echo "== env =="
 if [ -f .env ]; then
