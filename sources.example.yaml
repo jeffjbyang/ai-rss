@@ -1,0 +1,199 @@
+sources:
+  - name: OpenAI News
+    type: rss
+    priority: P0
+    url: "https://openai.com/news/rss.xml"
+    tags: [official, ai-models]
+    enabled: true
+  - name: Anthropic News
+    type: web
+    priority: P0
+    url: "https://www.anthropic.com/news"
+    tags: [official, ai-models, claude]
+    enabled: true
+  - name: Google DeepMind Blog
+    type: rss
+    priority: P0
+    url: "https://deepmind.google/blog/rss.xml"
+    tags: [official, ai-models, research]
+    enabled: true
+  - name: Google Research Blog
+    type: rss
+    priority: P0
+    url: "https://research.google/blog/rss/"
+    tags: [official, ai-models, research]
+    enabled: true
+  - name: Meta AI Blog
+    type: web
+    priority: P0
+    url: "https://ai.meta.com/blog/"
+    tags: [official, ai-models, research]
+    enabled: true
+  - name: Microsoft AI Blog
+    type: rss
+    priority: P0
+    url: "https://blogs.microsoft.com/ai/feed/"
+    tags: [official, ai-models, enterprise-ai]
+    enabled: true
+  - name: NVIDIA AI Blog
+    type: rss
+    priority: P0
+    url: "https://developer.nvidia.com/blog/category/artificial-intelligence/feed/"
+    tags: [official, ai-infra, inference]
+    enabled: true
+  - name: AWS Machine Learning Blog
+    type: rss
+    priority: P0
+    url: "https://aws.amazon.com/blogs/machine-learning/feed/"
+    tags: [official, cloud-ai, software-delivery]
+    enabled: true
+  - name: Hugging Face Blog
+    type: rss
+    priority: P0
+    url: "https://huggingface.co/blog/feed.xml"
+    tags: [official, open-source, ai-models]
+    enabled: true
+  - name: GitHub Changelog
+    type: rss
+    priority: P0
+    url: "https://github.blog/changelog/feed/"
+    tags: [official, github, software-delivery]
+    enabled: true
+  - name: GitHub Copilot Blog
+    type: rss
+    priority: P0
+    url: "https://github.blog/ai-and-ml/github-copilot/feed/"
+    tags: [official, github, ai-coding]
+    enabled: true
+  - name: OpenAI Codex
+    type: rss
+    priority: P0
+    url: "https://openai.com/news/rss.xml"
+    tags: [official, ai-coding, codex]
+    enabled: true
+  - name: Anthropic Claude Code
+    type: web
+    priority: P0
+    url: "https://www.anthropic.com/claude-code"
+    tags: [official, ai-coding, claude-code]
+    enabled: true
+  - name: Cursor Blog
+    type: web
+    priority: P0
+    url: "https://cursor.com/blog"
+    tags: [official, ai-coding, developer-tools]
+    enabled: true
+  - name: Windsurf Blog
+    type: web
+    priority: P0
+    url: "https://windsurf.com/blog"
+    tags: [official, ai-coding, developer-tools]
+    enabled: true
+  - name: Sourcegraph Blog
+    type: web
+    priority: P0
+    url: "https://sourcegraph.com/blog"
+    tags: [official, ai-coding, developer-tools]
+    enabled: true
+  - name: JetBrains AI Blog
+    type: rss
+    priority: P0
+    url: "https://blog.jetbrains.com/ai/feed/"
+    tags: [official, ai-coding, developer-tools]
+    enabled: true
+  - name: GitLab AI Blog
+    type: web
+    priority: P0
+    url: "https://about.gitlab.com/blog/categories/ai-ml/"
+    tags: [official, ai-coding, software-delivery]
+    enabled: true
+  - name: Harness Blog
+    type: rss
+    priority: P0
+    url: "https://www.harness.io/blog/rss.xml"
+    tags: [official, software-delivery, ci-cd]
+    enabled: true
+  - name: CodeRabbit Blog
+    type: web
+    priority: P0
+    url: "https://www.coderabbit.ai/blog"
+    tags: [official, ai-coding, code-review]
+    enabled: true
+  - name: Cognition Devin Blog
+    type: web
+    priority: P0
+    url: "https://www.cognition.ai/blog"
+    tags: [official, ai-coding, agentic-coding]
+    enabled: true
+  - name: Factory Blog
+    type: web
+    priority: P0
+    url: "https://www.factory.ai/blog"
+    tags: [official, ai-coding, agentic-coding]
+    enabled: true
+  - name: GitHub AI Agent Search
+    type: github-search
+    priority: P0
+    url: "https://api.github.com/search/repositories?q=agentic%20coding%20OR%20ai%20coding%20OR%20software%20agent"
+    tags: [github, ai-coding, agentic-coding]
+    enabled: true
+  - name: Aider Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/Aider-AI/aider"
+    tags: [github, ai-coding, open-source]
+    enabled: true
+  - name: OpenHands Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/All-Hands-AI/OpenHands"
+    tags: [github, ai-coding, open-source]
+    enabled: true
+  - name: SWE-agent Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/SWE-agent/SWE-agent"
+    tags: [github, ai-coding, open-source]
+    enabled: true
+  - name: Continue Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/continuedev/continue"
+    tags: [github, ai-coding, open-source]
+    enabled: true
+  - name: Cline Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/cline/cline"
+    tags: [github, ai-coding, open-source]
+    enabled: true
+  - name: Roo Code Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/RooCodeInc/Roo-Code"
+    tags: [github, ai-coding, open-source]
+    enabled: true
+  - name: SWE-bench Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/SWE-bench/SWE-bench"
+    tags: [github, benchmark, software-delivery]
+    enabled: true
+  - name: Terminal-Bench Releases
+    type: github-releases
+    priority: P0
+    url: "https://github.com/laude-institute/terminal-bench"
+    tags: [github, benchmark, software-delivery]
+    enabled: true
+  - name: arXiv AI Software Engineering
+    type: arxiv
+    priority: P0
+    url: "https://export.arxiv.org/api/query?search_query=all:%28agentic%20coding%20OR%20software%20engineering%20agents%20OR%20RAG%20OR%20multimodal%20LLM%29&sortBy=submittedDate&sortOrder=descending&max_results=25"
+    tags: [research, paper, ai-coding, software-delivery]
+    enabled: true
+  - name: Hacker News AI Search
+    type: hn-feed
+    priority: P0
+    url: "https://hnrss.org/newest?q=agentic%20coding%20OR%20AI%20agent%20OR%20LLM%20developer%20tools"
+    tags: [community, ai-coding, software-delivery]
+    enabled: true

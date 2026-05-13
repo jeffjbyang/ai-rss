@@ -1,0 +1,33 @@
+[project]
+name = "ai-rss"
+version = "0.1.0"
+description = "Daily AI technology brief generator."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.12.0",
+    "feedparser>=6.0.11",
+    "python-dateutil>=2.9.0",
+    "pyyaml>=6.0.2",
+    "requests>=2.32.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "responses>=0.25.0",
+]
+
+[project.scripts]
+ai-rss = "ai_rss.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ai_rss"]
