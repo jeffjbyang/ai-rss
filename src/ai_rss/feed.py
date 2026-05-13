@@ -11,6 +11,13 @@ from .config import Source
 from .models import Item
 from .normalize import canonical_url
 
+RSS_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (compatible; ai-rss/0.1; "
+        "+https://github.com/jeffjbyang/ai-rss)"
+    )
+}
+
 
 def collect_feed(source: Source) -> list[Item]:
     parsed = feedparser.parse(_read_feed(source.url))
@@ -38,7 +45,7 @@ def collect_feed(source: Source) -> list[Item]:
 
 def _read_feed(url: str) -> bytes | str:
     if urlsplit(url).scheme in {"http", "https"}:
-        response = requests.get(url, timeout=8)
+        response = requests.get(url, headers=RSS_HEADERS, timeout=8)
         response.raise_for_status()
         return response.content
     return url

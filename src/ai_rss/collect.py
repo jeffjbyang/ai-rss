@@ -85,4 +85,6 @@ def _write_run_log(
         lines.append(f"source_failure name={failure.name} priority={failure.priority} reason={failure.reason}")
     for reason in health_reasons:
         lines.append(f"health_reason={reason}")
+    for failure in llm_stats.failures:
+        lines.append(f"llm_failure title={failure.title} reason={failure.reason}")
     (logs_dir / f"{brief_date}.log").write_text("\n".join(lines) + "\n", encoding="utf-8")

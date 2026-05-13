@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +26,13 @@ class LLMStats:
     attempted: int = 0
     succeeded: int = 0
     failed: int = 0
+    failures: list["LLMFailure"] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class LLMFailure:
+    title: str
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -93,17 +100,26 @@ def enhance_entries_with_stats(
     attempted = 0
     succeeded = 0
     failed = 0
+    failures: list[LLMFailure] = []
     for entry in entries:
         attempted += 1
         try:
             enhancement = llm_client.enhance(entry.item)
-        except Exception:  # noqa: BLE001 - LLM enhancement must never block the daily brief.
+        except Exception as exc:  # noqa: BLE001 - LLM enhancement must never block the daily brief.
             failed += 1
+            failure_reason = f"{exc.__class__.__name__}: {exc}"
+            failures.append(LLMFailure(title=entry.item.title, reason=failure_reason))
             enhanced.append(entry)
             continue
         succeeded += 1
         enhanced.append(_apply_enhancement(entry, enhancement))
-    return enhanced, LLMStats(enabled=True, attempted=attempted, succeeded=succeeded, failed=failed)
+    return enhanced, LLMStats(
+        enabled=True,
+        attempted=attempted,
+        succeeded=succeeded,
+        failed=failed,
+        failures=failures,
+    )
 
 
 def render_brief(brief_date: str, entries: list[BriefEntry]) -> str:
