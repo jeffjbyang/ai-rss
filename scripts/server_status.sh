@@ -20,3 +20,6 @@ crontab -l | grep 'ai-rss' || true
 echo
 echo "== latest logs =="
 ls -1 data/logs 2>/dev/null | tail -5 || true
+echo
+echo "== latest update log =="
+tail -20 data/logs/update.log 2>/dev/null || true

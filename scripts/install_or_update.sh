@@ -65,7 +65,7 @@ install_cron() {
 CRON_TZ=Asia/Shanghai
 50 17 * * * cd $APP_DIR && set -a && . ./.env && set +a && $uv_bin run ai-rss collect --config sources.yaml --data-dir data >> data/logs/cron.log 2>&1
 10 18 * * * cd $APP_DIR && set -a && . ./.env && set +a && $uv_bin run ai-rss send --data-dir data >> data/logs/cron.log 2>&1
-20 18 * * * cd $APP_DIR && git pull --ff-only origin $BRANCH && $uv_bin sync --extra dev >> data/logs/update.log 2>&1
+20 * * * * cd $APP_DIR && AI_RSS_UV_BIN=$uv_bin bash scripts/update_from_git.sh >> data/logs/update.log 2>&1
 EOF
   crontab "$tmp"
   rm -f "$tmp"
