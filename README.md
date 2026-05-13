@@ -51,6 +51,30 @@ export AI_RSS_LLM_API_KEY="your-api-key"
 uv run ai-rss collect --config sources.yaml --data-dir data
 ```
 
+After each collect run, confirm whether LLM enhancement was used in the daily log:
+
+```sh
+cat data/logs/$(date +%F).log
+```
+
+Expected fields:
+
+```text
+llm_enabled=true
+llm_attempted=15
+llm_succeeded=15
+llm_failed=0
+```
+
+If LLM is not configured, the log shows:
+
+```text
+llm_enabled=false
+llm_attempted=0
+llm_succeeded=0
+llm_failed=0
+```
+
 Local OpenAI-compatible endpoint example:
 
 ```sh

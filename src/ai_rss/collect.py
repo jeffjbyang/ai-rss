@@ -4,13 +4,14 @@ from datetime import datetime
 from pathlib import Path
 
 from .arxiv import collect_arxiv_query
-from .brief import create_brief_from_candidates
+from .brief import LLMStats, create_brief_result_from_candidates
 from .config import Source
 from .config import load_sources
 from .feed import collect_feed
 from .github import collect_github_releases, collect_github_repositories
 from .health import SourceFailure, evaluate_health, send_health_alert_to_feishu
 from .hn import collect_hn_feed
+from .llm import llm_client_from_env
 from .render import write_candidates
 from .storage import Storage
 from .timeutils import brief_date_for, previous_24_hour_window
@@ -36,9 +37,14 @@ def collect_to_candidates(config_path: Path, data_dir: Path, now: datetime) -> N
     start, end = previous_24_hour_window(now)
     items = storage.list_items_between(start, end)
     write_candidates(data_dir, date, items)
-    create_brief_from_candidates(data_dir, date, overwrite=True)
+    brief_result = create_brief_result_from_candidates(
+        data_dir,
+        date,
+        overwrite=True,
+        llm_client=llm_client_from_env(),
+    )
     report = evaluate_health(candidate_count=len(items), source_failures=source_failures)
-    _write_run_log(data_dir, date, len(items), source_failures, report.reasons)
+    _write_run_log(data_dir, date, len(items), source_failures, report.reasons, brief_result.llm_stats)
     if report.needs_alert:
         send_health_alert_to_feishu(report, brief_date=date)
 
@@ -63,12 +69,17 @@ def _write_run_log(
     candidate_count: int,
     source_failures: list[SourceFailure],
     health_reasons: list[str],
+    llm_stats: LLMStats = LLMStats(),
 ) -> None:
     logs_dir = data_dir / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     lines = [
         f"brief_date={brief_date}",
         f"candidate_count={candidate_count}",
+        f"llm_enabled={str(llm_stats.enabled).lower()}",
+        f"llm_attempted={llm_stats.attempted}",
+        f"llm_succeeded={llm_stats.succeeded}",
+        f"llm_failed={llm_stats.failed}",
     ]
     for failure in source_failures:
         lines.append(f"source_failure name={failure.name} priority={failure.priority} reason={failure.reason}")

@@ -63,3 +63,18 @@ unset AI_RSS_LLM_API_KEY
 ```
 
 Only selected brief candidates are enhanced. If the provider times out or returns an error, generation falls back to the rule-based summary for that item.
+
+Check the daily run log to confirm whether LLM was used:
+
+```sh
+cat data/logs/$(date +%F).log
+```
+
+The log includes:
+
+```text
+llm_enabled=true
+llm_attempted=15
+llm_succeeded=13
+llm_failed=2
+```

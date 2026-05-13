@@ -2,6 +2,7 @@ from pathlib import Path
 
 from ai_rss.collect import collect_to_candidates
 from ai_rss.config import Source
+from ai_rss.llm import LLMEnhancement
 from ai_rss.models import Item
 from ai_rss.timeutils import parse_now
 
@@ -147,3 +148,91 @@ sources:
     log = (tmp_path / "logs" / "2026-05-13.log").read_text(encoding="utf-8")
     assert "Bad Write Source" in log
     assert "disk unavailable" in log
+
+
+def test_collect_logs_llm_enhancement_stats(tmp_path: Path, monkeypatch) -> None:
+    config = tmp_path / "sources.yaml"
+    config.write_text(
+        """
+sources:
+  - name: Working Source
+    type: rss
+    priority: P0
+    url: https://example.com/working.xml
+    tags: [ai-coding]
+    enabled: true
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "ai_rss.collect.collect_source",
+        lambda source: [
+            Item(
+                title="Working coding agent update",
+                source_name=source.name,
+                source_type=source.type,
+                source_priority=source.priority,
+                url="https://example.com/working",
+                canonical_url="https://example.com/working",
+                published_at="2026-05-13T08:00:00+00:00",
+                summary="Official repo and CI repair signal.",
+                tags=source.tags,
+            )
+        ],
+    )
+
+    class FakeLLMClient:
+        def enhance(self, item: Item) -> LLMEnhancement:
+            return LLMEnhancement(summary="LLM 摘要")
+
+    monkeypatch.setattr("ai_rss.collect.llm_client_from_env", lambda: FakeLLMClient())
+
+    collect_to_candidates(config, tmp_path, parse_now("2026-05-13T18:10:00+08:00"))
+
+    log = (tmp_path / "logs" / "2026-05-13.log").read_text(encoding="utf-8")
+    assert "llm_enabled=true" in log
+    assert "llm_attempted=1" in log
+    assert "llm_succeeded=1" in log
+    assert "llm_failed=0" in log
+
+
+def test_collect_logs_llm_disabled_when_no_provider_configured(tmp_path: Path, monkeypatch) -> None:
+    config = tmp_path / "sources.yaml"
+    config.write_text(
+        """
+sources:
+  - name: Working Source
+    type: rss
+    priority: P0
+    url: https://example.com/working.xml
+    tags: [ai-coding]
+    enabled: true
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "ai_rss.collect.collect_source",
+        lambda source: [
+            Item(
+                title="Working coding agent update",
+                source_name=source.name,
+                source_type=source.type,
+                source_priority=source.priority,
+                url="https://example.com/working",
+                canonical_url="https://example.com/working",
+                published_at="2026-05-13T08:00:00+00:00",
+                summary="Official repo and CI repair signal.",
+                tags=source.tags,
+            )
+        ],
+    )
+    monkeypatch.setattr("ai_rss.collect.llm_client_from_env", lambda: None)
+
+    collect_to_candidates(config, tmp_path, parse_now("2026-05-13T18:10:00+08:00"))
+
+    log = (tmp_path / "logs" / "2026-05-13.log").read_text(encoding="utf-8")
+    assert "llm_enabled=false" in log
+    assert "llm_attempted=0" in log
+    assert "llm_succeeded=0" in log
+    assert "llm_failed=0" in log

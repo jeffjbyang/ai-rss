@@ -20,6 +20,20 @@ class BriefEntry:
     why_matters: str = ""
 
 
+@dataclass(frozen=True)
+class LLMStats:
+    enabled: bool = False
+    attempted: int = 0
+    succeeded: int = 0
+    failed: int = 0
+
+
+@dataclass(frozen=True)
+class BriefResult:
+    path: Path
+    llm_stats: LLMStats
+
+
 def create_brief_from_candidates(
     data_dir: Path,
     brief_date: str,
@@ -28,34 +42,68 @@ def create_brief_from_candidates(
     overwrite: bool = True,
     llm_client: LLMClient | None = None,
 ) -> Path:
+    return create_brief_result_from_candidates(
+        data_dir,
+        brief_date,
+        max_items=max_items,
+        overwrite=overwrite,
+        llm_client=llm_client,
+    ).path
+
+
+def create_brief_result_from_candidates(
+    data_dir: Path,
+    brief_date: str,
+    *,
+    max_items: int = DEFAULT_MAX_ITEMS,
+    overwrite: bool = True,
+    llm_client: LLMClient | None = None,
+) -> BriefResult:
     """Create a Markdown review brief from candidates/YYYY-MM-DD.json."""
     candidate_path = data_dir / "candidates" / f"{brief_date}.json"
     brief_path = data_dir / "briefs" / f"{brief_date}.md"
     if brief_path.exists() and not overwrite:
-        return brief_path
+        return BriefResult(path=brief_path, llm_stats=LLMStats(enabled=False))
 
     payload = json.loads(candidate_path.read_text(encoding="utf-8"))
     entries = _entries_from_payload(payload)
     selected = select_for_brief(entries, max_items=max_items)
-    selected = enhance_entries(selected, llm_client=llm_client if llm_client is not None else llm_client_from_env())
+    selected, llm_stats = enhance_entries_with_stats(
+        selected,
+        llm_client=llm_client if llm_client is not None else llm_client_from_env(),
+    )
 
     brief_path.parent.mkdir(parents=True, exist_ok=True)
     brief_path.write_text(render_brief(brief_date, selected), encoding="utf-8")
-    return brief_path
+    return BriefResult(path=brief_path, llm_stats=llm_stats)
 
 
 def enhance_entries(entries: list[BriefEntry], *, llm_client: LLMClient | None) -> list[BriefEntry]:
+    return enhance_entries_with_stats(entries, llm_client=llm_client)[0]
+
+
+def enhance_entries_with_stats(
+    entries: list[BriefEntry],
+    *,
+    llm_client: LLMClient | None,
+) -> tuple[list[BriefEntry], LLMStats]:
     if llm_client is None:
-        return entries
+        return entries, LLMStats(enabled=False)
     enhanced: list[BriefEntry] = []
+    attempted = 0
+    succeeded = 0
+    failed = 0
     for entry in entries:
+        attempted += 1
         try:
             enhancement = llm_client.enhance(entry.item)
         except Exception:  # noqa: BLE001 - LLM enhancement must never block the daily brief.
+            failed += 1
             enhanced.append(entry)
             continue
+        succeeded += 1
         enhanced.append(_apply_enhancement(entry, enhancement))
-    return enhanced
+    return enhanced, LLMStats(enabled=True, attempted=attempted, succeeded=succeeded, failed=failed)
 
 
 def render_brief(brief_date: str, entries: list[BriefEntry]) -> str:
