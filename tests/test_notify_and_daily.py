@@ -7,7 +7,7 @@ import responses
 from ai_rss.cli import main
 from ai_rss.daily import cron_examples, scheduled_times_for_brief
 from ai_rss.health import SourceFailure, evaluate_health, send_health_alert_to_feishu
-from ai_rss.notify import send_brief_to_feishu
+from ai_rss.notify import MAX_FEISHU_TEXT_BYTES, split_text_for_feishu, send_brief_to_feishu
 
 
 def test_send_brief_to_feishu_reads_daily_brief_from_env_webhook(tmp_path: Path, monkeypatch) -> None:
@@ -50,6 +50,64 @@ def test_send_brief_to_feishu_retries_failures_without_leaking_secret(tmp_path: 
     assert result.ok is True
     assert result.attempts == 2
     assert "retry-secret-token" not in result.message
+
+
+def test_send_brief_to_feishu_splits_large_brief_into_keyword_safe_chunks(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    brief_date = "2026-05-13"
+    brief_dir = tmp_path / "briefs"
+    brief_dir.mkdir()
+    long_body = "\n".join(f"- 第 {index} 条：{'AI Coding 工程实践 ' * 80}" for index in range(180))
+    (brief_dir / f"{brief_date}.md").write_text(f"# AI 技术简报 - {brief_date}\n\n{long_body}\n", encoding="utf-8")
+    webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/large-secret-token"
+    monkeypatch.setenv("FEISHU_WEBHOOK_URL", webhook)
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(responses.POST, webhook, json={"code": 0, "msg": "success"}, status=200)
+
+        result = send_brief_to_feishu(tmp_path, brief_date)
+        request_bodies = [call.request.body.decode("utf-8") for call in rsps.calls]
+
+    assert result.ok is True
+    assert result.attempts == len(request_bodies)
+    assert len(request_bodies) > 1
+    assert "Feishu brief sent in" in result.message
+    assert "large-secret-token" not in result.message
+    for body in request_bodies:
+        assert "AI 技术简报" in body
+        assert len(body.encode("utf-8")) <= MAX_FEISHU_TEXT_BYTES
+
+
+def test_send_brief_to_feishu_stops_when_a_later_chunk_fails(tmp_path: Path, monkeypatch) -> None:
+    brief_date = "2026-05-13"
+    brief_dir = tmp_path / "briefs"
+    brief_dir.mkdir()
+    long_body = "\n".join(f"- {'后续分片失败测试 ' * 100}" for _ in range(160))
+    (brief_dir / f"{brief_date}.md").write_text(f"# AI 技术简报 - {brief_date}\n\n{long_body}\n", encoding="utf-8")
+    webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/chunk-fail-secret-token"
+    monkeypatch.setenv("FEISHU_WEBHOOK_URL", webhook)
+
+    with responses.RequestsMock() as rsps:
+        rsps.add(responses.POST, webhook, json={"code": 0, "msg": "success"}, status=200)
+        rsps.add(responses.POST, webhook, json={"code": 19036, "msg": "too large"}, status=200)
+        rsps.add(responses.POST, webhook, json={"code": 19036, "msg": "too large"}, status=200)
+
+        result = send_brief_to_feishu(tmp_path, brief_date, max_attempts=2)
+
+    assert result.ok is False
+    assert result.attempts == 3
+    assert "chunk 2" in result.message
+    assert "chunk-fail-secret-token" not in result.message
+
+
+def test_split_text_for_feishu_splits_oversized_single_line() -> None:
+    chunks = split_text_for_feishu("AI 技术简报\n" + ("超长单行" * 9000), max_bytes=3000)
+
+    assert len(chunks) > 1
+    assert all("AI 技术简报" in chunk for chunk in chunks)
+    assert all(len(chunk.encode("utf-8")) <= 3000 for chunk in chunks)
 
 
 def test_daily_helpers_compute_beijing_run_times_and_cron_examples() -> None:
