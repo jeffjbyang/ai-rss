@@ -4,6 +4,7 @@ from ai_rss.arxiv import collect_arxiv_query, parse_arxiv_atom
 from ai_rss.config import Source
 from ai_rss.config import load_sources
 from ai_rss.default_sources import DEFAULT_SOURCES
+from ai_rss.webpage import parse_web_page
 from ai_rss.github import collect_github_releases, collect_github_repositories
 from ai_rss.hn import collect_hn_feed, parse_hn_feed
 
@@ -229,10 +230,48 @@ def test_hn_feed_collector_uses_injected_text_client() -> None:
     assert [item.title for item in items] == ["Agent tools"]
 
 
+def test_web_page_collector_extracts_engineering_article_links() -> None:
+    source = Source(
+        name="OpenAI Engineering",
+        type="web",
+        priority="P0",
+        url="https://openai.com/news/engineering/",
+        tags=["official", "engineering-practice", "software-delivery"],
+    )
+    html = """
+    <html>
+      <body>
+        <nav><a href="/news/">News</a><a href="/careers/">Careers</a></nav>
+        <main>
+          <a href="/news/scaling-code-review/">
+            Scaling code review with agentic coding systems Engineering May 12, 2026
+          </a>
+          <a href="https://platform.openai.com/docs">Developer docs</a>
+          <a href="/news/reliability-for-agents/">
+            Reliability lessons from production AI agents Engineering May 11, 2026
+          </a>
+        </main>
+      </body>
+    </html>
+    """
+
+    items = parse_web_page(source, html)
+
+    assert [item.title for item in items] == [
+        "Scaling code review with agentic coding systems",
+        "Reliability lessons from production AI agents",
+    ]
+    assert items[0].url == "https://openai.com/news/scaling-code-review"
+    assert items[0].published_at == "2026-05-12T00:00:00+00:00"
+    assert items[0].tags == ["official", "engineering-practice", "software-delivery"]
+
+
 def test_default_sources_cover_p0_official_and_ai_coding_sources() -> None:
     expected_names = {
         "OpenAI News",
+        "OpenAI Engineering",
         "Anthropic News",
+        "Anthropic Engineering",
         "Google DeepMind Blog",
         "Meta AI Blog",
         "Microsoft AI Blog",
@@ -266,8 +305,11 @@ def test_default_sources_cover_p0_official_and_ai_coding_sources() -> None:
     by_name = {source.name: source for source in DEFAULT_SOURCES}
 
     assert expected_names <= set(by_name)
-    assert {by_name[name].priority for name in expected_names} == {"P0"}
+    assert {by_name[name].priority for name in expected_names - {"arXiv AI Software Engineering"}} == {"P0"}
+    assert by_name["arXiv AI Software Engineering"].priority == "P1"
     assert by_name["OpenAI News"].type == "rss"
+    assert by_name["OpenAI Engineering"].type == "web"
+    assert by_name["Anthropic Engineering"].type == "web"
     assert by_name["OpenHands Releases"].type == "github-releases"
     assert by_name["arXiv AI Software Engineering"].type == "arxiv"
     assert by_name["Hacker News AI Search"].type == "hn-feed"

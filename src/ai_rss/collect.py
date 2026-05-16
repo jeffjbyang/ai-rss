@@ -15,6 +15,7 @@ from .llm import llm_client_from_env
 from .render import write_candidates
 from .storage import Storage
 from .timeutils import brief_date_for, previous_24_hour_window
+from .webpage import collect_web_page
 
 
 def collect_to_candidates(config_path: Path, data_dir: Path, now: datetime) -> None:
@@ -60,6 +61,8 @@ def collect_source(source: Source):
         return collect_arxiv_query(source)
     if source.type == "hn-feed":
         return collect_hn_feed(source)
+    if source.type == "web":
+        return collect_web_page(source)
     return []
 
 

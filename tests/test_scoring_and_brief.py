@@ -114,6 +114,65 @@ def test_creates_review_brief_from_candidates_with_sections_and_exploration_quot
     assert "Novel inference cache project gains adoption" in text
 
 
+def test_review_brief_limits_research_papers_and_prefers_engineering_practice(tmp_path: Path) -> None:
+    candidates_dir = tmp_path / "candidates"
+    candidates_dir.mkdir()
+    items = [
+        candidate(
+            f"Paper {index}: Agentic coding benchmark for software delivery",
+            "arXiv AI Software Engineering",
+            "P0",
+            "Paper benchmark studies agentic coding, CI repair, and pull request automation.",
+            tags=["research", "paper", "ai-coding", "software-delivery"],
+        )
+        for index in range(6)
+    ]
+    items.extend(
+        [
+            candidate(
+                "OpenAI shares production lessons for coding agents",
+                "OpenAI Engineering",
+                "P0",
+                "Engineering practice post covers production reliability, sandboxing, and developer workflow rollout.",
+                tags=["official", "engineering-practice", "ai-coding", "software-delivery"],
+            ),
+            candidate(
+                "Anthropic explains evaluation harnesses for Claude Code",
+                "Anthropic Engineering",
+                "P0",
+                "Engineering practice case study on evaluation harnesses, tool use, and release safety.",
+                tags=["official", "engineering-practice", "ai-coding", "software-delivery"],
+            ),
+            candidate(
+                "Harness improves AI deployment verification",
+                "Harness Blog",
+                "P0",
+                "Official software delivery release improves deployment verification and CI/CD guardrails.",
+                tags=["official", "software-delivery", "ci-cd"],
+            ),
+            candidate(
+                "GitHub adds Copilot code review controls",
+                "GitHub Changelog",
+                "P0",
+                "Official engineering update improves code review policy and pull request automation.",
+                tags=["official", "github", "ai-coding", "software-delivery"],
+            ),
+        ]
+    )
+    (candidates_dir / "2026-05-13.json").write_text(
+        json.dumps({"brief_date": "2026-05-13", "items": items}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    brief_path = create_brief_from_candidates(tmp_path, "2026-05-13", max_items=5)
+
+    text = brief_path.read_text(encoding="utf-8")
+    assert text.count("arXiv AI Software Engineering") <= 2
+    assert "OpenAI shares production lessons for coding agents" in text
+    assert "Anthropic explains evaluation harnesses for Claude Code" in text
+    assert "Harness improves AI deployment verification" in text
+
+
 def test_review_brief_can_preserve_manual_edits(tmp_path: Path) -> None:
     candidates_dir = tmp_path / "candidates"
     candidates_dir.mkdir()

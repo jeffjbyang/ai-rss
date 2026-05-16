@@ -12,11 +12,25 @@ DEFAULT_SOURCES: tuple[Source, ...] = (
         tags=["official", "ai-models"],
     ),
     Source(
+        name="OpenAI Engineering",
+        type="web",
+        priority="P0",
+        url="https://openai.com/news/engineering/",
+        tags=["official", "engineering-practice", "ai-coding", "software-delivery"],
+    ),
+    Source(
         name="Anthropic News",
         type="web",
         priority="P0",
         url="https://www.anthropic.com/news",
         tags=["official", "ai-models", "claude"],
+    ),
+    Source(
+        name="Anthropic Engineering",
+        type="web",
+        priority="P0",
+        url="https://www.anthropic.com/engineering",
+        tags=["official", "engineering-practice", "ai-coding", "software-delivery", "claude"],
     ),
     Source(
         name="Google DeepMind Blog",
@@ -224,7 +238,7 @@ DEFAULT_SOURCES: tuple[Source, ...] = (
     Source(
         name="arXiv AI Software Engineering",
         type="arxiv",
-        priority="P0",
+        priority="P1",
         url="https://export.arxiv.org/api/query?search_query=all:%28agentic%20coding%20OR%20software%20engineering%20agents%20OR%20RAG%20OR%20multimodal%20LLM%29&sortBy=submittedDate&sortOrder=descending&max_results=25",
         tags=["research", "paper", "ai-coding", "software-delivery"],
     ),

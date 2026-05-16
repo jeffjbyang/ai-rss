@@ -38,14 +38,41 @@ AI_CODING_KEYWORDS = {
 }
 
 SOFTWARE_DELIVERY_KEYWORDS = {
+    "architecture",
     "ci/cd",
     "deployment",
     "developer productivity",
     "devops",
+    "engineering",
     "harness",
+    "incident",
+    "latency",
+    "observability",
+    "postmortem",
+    "production",
+    "reliability",
     "release automation",
+    "scaling",
     "software delivery",
     "test automation",
+}
+
+ENGINEERING_PRACTICE_KEYWORDS = {
+    "architecture",
+    "case study",
+    "context engineering",
+    "deployment",
+    "engineering",
+    "harness",
+    "incident",
+    "infrastructure",
+    "latency",
+    "postmortem",
+    "production",
+    "reliability",
+    "sandbox",
+    "scaling",
+    "tool use",
 }
 
 TECHNICAL_IMPACT_KEYWORDS = {
@@ -208,6 +235,8 @@ def _tags_for(item: Item, text: str) -> list[str]:
         tags.append("ai-coding")
     if _match_count(text, SOFTWARE_DELIVERY_KEYWORDS) and "software-delivery" not in tags:
         tags.append("software-delivery")
+    if _match_count(text, ENGINEERING_PRACTICE_KEYWORDS) and "engineering-practice" not in tags:
+        tags.append("engineering-practice")
     if "ci" in text and "repair" in text and "software-delivery" not in tags:
         tags.append("software-delivery")
     if _is_exploratory_signal(text, tags) and "exploratory" not in tags:

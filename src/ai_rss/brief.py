@@ -130,7 +130,10 @@ def render_brief(brief_date: str, entries: list[BriefEntry]) -> str:
 
     sections: list[tuple[str, list[BriefEntry]]] = [
         ("Top 3 必读", entries[:3]),
-        ("AI Coding / 软件交付工程实践", [entry for entry in entries if _is_ai_delivery(entry.item)]),
+        (
+            "AI Coding / 软件交付工程实践",
+            [entry for entry in entries if _is_ai_delivery(entry.item) and not _is_research_paper(entry.item)],
+        ),
         ("模型 / API / 平台更新", [entry for entry in entries if _matches(entry.item, {"model", "api", "platform"})]),
         ("开源项目与工具", [entry for entry in entries if _matches(entry.item, {"open source", "github", "repo", "tool"})]),
         ("论文与研究", [entry for entry in entries if _matches(entry.item, {"paper", "research", "benchmark"})]),
@@ -154,10 +157,27 @@ def select_for_brief(entries: list[BriefEntry], *, max_items: int = DEFAULT_MAX_
         return []
 
     ordered = sorted(entries, key=lambda entry: _sort_key(entry.item), reverse=True)
-    selected = ordered[:max_items]
+    selected = _select_with_research_cap(ordered, max_items=max_items)
     exploration_quota = 2 if max_items >= 10 else 1
     selected = _ensure_exploration_quota(selected, ordered, quota=exploration_quota, max_items=max_items)
     return sorted(selected, key=lambda entry: _sort_key(entry.item), reverse=True)
+
+
+def _select_with_research_cap(entries: list[BriefEntry], *, max_items: int) -> list[BriefEntry]:
+    max_research = max(1, max_items // 5)
+    selected: list[BriefEntry] = []
+    research_count = 0
+
+    for entry in entries:
+        if _is_research_paper(entry.item):
+            if research_count >= max_research:
+                continue
+            research_count += 1
+        selected.append(entry)
+        if len(selected) >= max_items:
+            return selected
+
+    return selected
 
 
 def _entries_from_payload(payload: dict[str, Any]) -> list[BriefEntry]:
@@ -288,7 +308,16 @@ def _sort_key(item: Item) -> tuple[int, int, int]:
 
 
 def _is_ai_delivery(item: Item) -> bool:
-    return "ai-coding" in item.tags or "software-delivery" in item.tags
+    return (
+        "ai-coding" in item.tags
+        or "software-delivery" in item.tags
+        or "engineering-practice" in item.tags
+    )
+
+
+def _is_research_paper(item: Item) -> bool:
+    tags = set(item.tags)
+    return "paper" in tags or item.source_type == "arxiv"
 
 
 def _is_exploratory(item: Item) -> bool:
