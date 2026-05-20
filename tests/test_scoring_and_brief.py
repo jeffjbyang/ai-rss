@@ -173,6 +173,53 @@ def test_review_brief_limits_research_papers_and_prefers_engineering_practice(tm
     assert "Harness improves AI deployment verification" in text
 
 
+def test_review_brief_filters_low_quality_github_search_candidates(tmp_path: Path) -> None:
+    candidates_dir = tmp_path / "candidates"
+    candidates_dir.mkdir()
+    (candidates_dir / "2026-05-13.json").write_text(
+        json.dumps(
+            {
+                "brief_date": "2026-05-13",
+                "items": [
+                    candidate(
+                        "random/zero-star-agent",
+                        "GitHub AI Agent Search",
+                        "P0",
+                        "AI coding agent for pull request automation.\nStars: 0",
+                        source_type="github-search",
+                        tags=["github", "ai-coding", "agentic-coding"],
+                    ),
+                    candidate(
+                        "random/popular-agent",
+                        "GitHub AI Agent Search",
+                        "P0",
+                        "AI coding agent for pull request automation.\nStars: 1200",
+                        source_type="github-search",
+                        tags=["github", "ai-coding", "agentic-coding"],
+                    ),
+                    candidate(
+                        "openai/new-agent-tool",
+                        "GitHub AI Agent Search",
+                        "P0",
+                        "Official AI coding agent experiment.\nStars: 12",
+                        source_type="github-search",
+                        tags=["github", "ai-coding", "agentic-coding"],
+                    ),
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    brief_path = create_brief_from_candidates(tmp_path, "2026-05-13", max_items=5)
+
+    text = brief_path.read_text(encoding="utf-8")
+    assert "random/zero-star-agent" not in text
+    assert "random/popular-agent" in text
+    assert "openai/new-agent-tool" in text
+
+
 def test_review_brief_can_preserve_manual_edits(tmp_path: Path) -> None:
     candidates_dir = tmp_path / "candidates"
     candidates_dir.mkdir()
@@ -280,6 +327,7 @@ def candidate(
     source_priority: str,
     summary: str,
     *,
+    source_type: str = "rss",
     tags: list[str] | None = None,
     practical_takeaway: str = "",
 ) -> dict[str, object]:
@@ -287,7 +335,7 @@ def candidate(
     return {
         "title": title,
         "source_name": source_name,
-        "source_type": "rss",
+        "source_type": source_type,
         "source_priority": source_priority,
         "url": url,
         "canonical_url": url,

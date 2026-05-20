@@ -8,6 +8,7 @@ import requests
 from dateutil import parser as date_parser
 
 from .config import Source
+from .github_quality import passes_github_repository_quality
 from .models import Item
 from .normalize import canonical_url
 
@@ -81,7 +82,7 @@ def _repository_search_request(source_url: str, per_page: int) -> tuple[str, dic
         "https://api.github.com/search/repositories",
         {
             "q": params.get("q", source_url),
-            "sort": params.get("sort", "updated"),
+            "sort": params.get("sort", "stars"),
             "order": params.get("order", "desc"),
             "per_page": per_page,
         },
@@ -105,6 +106,9 @@ def _repository_item(source: Source, repo: dict[str, Any]) -> Item | None:
 
     description = str(repo.get("description") or "").strip()
     stars = int(repo.get("stargazers_count") or 0)
+    if not passes_github_repository_quality(title, stars):
+        return None
+
     summary_parts = [description] if description else []
     summary_parts.append(f"Stars: {stars}")
 

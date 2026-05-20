@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .github_quality import is_low_quality_github_repository_item
 from .llm import LLMClient, LLMEnhancement, llm_client_from_env
 from .models import Item
 from .scoring import score_items
@@ -156,6 +157,7 @@ def select_for_brief(entries: list[BriefEntry], *, max_items: int = DEFAULT_MAX_
     if max_items <= 0:
         return []
 
+    entries = [entry for entry in entries if not is_low_quality_github_repository_item(entry.item)]
     ordered = sorted(entries, key=lambda entry: _sort_key(entry.item), reverse=True)
     selected = _select_with_research_cap(ordered, max_items=max_items)
     exploration_quota = 2 if max_items >= 10 else 1

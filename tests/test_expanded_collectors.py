@@ -6,6 +6,7 @@ from ai_rss.config import load_sources
 from ai_rss.default_sources import DEFAULT_SOURCES
 from ai_rss.webpage import parse_web_page
 from ai_rss.github import collect_github_releases, collect_github_repositories
+from ai_rss.github_quality import MIN_GITHUB_REPOSITORY_STARS
 from ai_rss.hn import collect_hn_feed, parse_hn_feed
 
 
@@ -57,7 +58,7 @@ def test_github_repository_search_payload_becomes_candidates() -> None:
     assert client.calls == [
         (
             "https://api.github.com/search/repositories",
-            {"q": "topic:ai-agent language:Python", "sort": "updated", "order": "desc", "per_page": 25},
+            {"q": "topic:ai-agent language:Python", "sort": "stars", "order": "desc", "per_page": 25},
         )
     ]
     assert len(items) == 1
@@ -68,6 +69,58 @@ def test_github_repository_search_payload_becomes_candidates() -> None:
     assert item.summary == "AI coding agent for pull request repair\nStars: 1234"
     assert item.score == 1234
     assert item.tags == ["github", "ai-coding", "ai-agent", "developer-tools"]
+
+
+def test_github_repository_search_filters_low_quality_random_repos() -> None:
+    source = Source(
+        name="GitHub AI Agent Repos",
+        type="github-search",
+        priority="P0",
+        url="https://api.github.com/search/repositories?q=agentic%20coding",
+        tags=["github", "ai-coding"],
+    )
+    client = FakeGitHubClient(
+        {
+            "items": [
+                {
+                    "full_name": "random/zero-star-agent",
+                    "html_url": "https://github.com/random/zero-star-agent",
+                    "description": "AI coding agent",
+                    "stargazers_count": 0,
+                    "pushed_at": "2026-05-12T10:00:00Z",
+                    "topics": ["ai-agent"],
+                },
+                {
+                    "full_name": "random/almost-popular-agent",
+                    "html_url": "https://github.com/random/almost-popular-agent",
+                    "description": "AI coding agent",
+                    "stargazers_count": MIN_GITHUB_REPOSITORY_STARS - 1,
+                    "pushed_at": "2026-05-12T10:00:00Z",
+                    "topics": ["ai-agent"],
+                },
+                {
+                    "full_name": "random/popular-agent",
+                    "html_url": "https://github.com/random/popular-agent",
+                    "description": "AI coding agent",
+                    "stargazers_count": MIN_GITHUB_REPOSITORY_STARS,
+                    "pushed_at": "2026-05-12T10:00:00Z",
+                    "topics": ["ai-agent"],
+                },
+                {
+                    "full_name": "openai/new-agent-tool",
+                    "html_url": "https://github.com/openai/new-agent-tool",
+                    "description": "Official AI coding agent experiment",
+                    "stargazers_count": 12,
+                    "pushed_at": "2026-05-12T10:00:00Z",
+                    "topics": ["ai-agent"],
+                },
+            ]
+        }
+    )
+
+    items = collect_github_repositories(source, client=client)
+
+    assert [item.title for item in items] == ["random/popular-agent", "openai/new-agent-tool"]
 
 
 def test_github_release_payload_becomes_candidates_for_configured_repo() -> None:
